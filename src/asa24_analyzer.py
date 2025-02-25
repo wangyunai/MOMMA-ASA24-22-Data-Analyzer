@@ -269,13 +269,27 @@ def main():
     st.set_page_config(page_title="ASA24 Multi-Subject Analyzer", layout="wide")
     st.title("ASA24 Multi-Subject Analyzer")
     
-    # Find data directory
-    data_dir = None
-    workspace_dir = "/workspace"
-    for item in os.listdir(workspace_dir):
-        if "MOMMA" in item and os.path.isdir(os.path.join(workspace_dir, item)):
-            data_dir = os.path.join(workspace_dir, item)
-            break
+    # Allow users to specify data directory
+    data_dir = st.sidebar.text_input(
+        "Data Directory",
+        value="data",
+        help="Enter the path to your ASA24 data directory (absolute path or relative to current directory)"
+    )
+    
+    # Convert relative path to absolute path
+    if not os.path.isabs(data_dir):
+        data_dir = os.path.abspath(data_dir)
+    
+    # Check if directory exists and contains ASA24 files
+    if not os.path.exists(data_dir):
+        st.error(f"Error: Directory not found: {data_dir}")
+        st.info("Please enter the correct path to your ASA24 data directory")
+        return
+    
+    if not any(file.endswith('.csv') for file in os.listdir(data_dir)):
+        st.error(f"Error: No CSV files found in {data_dir}")
+        st.info("Please make sure your ASA24 data files (.csv) are in the specified directory")
+        return
     
     if data_dir is None:
         st.error("Error: Could not find ASA24 data directory")

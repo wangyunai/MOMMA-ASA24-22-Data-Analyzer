@@ -27,13 +27,28 @@ pip install -r requirements.txt
 
 ## Usage
 
-1. Place your ASA24 data files in a directory
-2. Run the Streamlit application:
+1. Create a directory for your ASA24 data files (e.g., `data`)
+2. Place your ASA24 CSV files in the data directory
+3. Run the Streamlit application:
 ```bash
 streamlit run src/asa24_analyzer.py
 ```
+4. Access the web interface at http://localhost:8501
+5. In the sidebar, enter the path to your data directory (e.g., "data" or absolute path)
 
-3. Access the web interface at http://localhost:8501
+### Example Directory Structure
+```
+your-project-directory/
+├── data/
+│   ├── MOMMA_*_INS.csv
+│   ├── MOMMA_*_Items.csv
+│   ├── MOMMA_*_Responses.csv
+│   ├── MOMMA_*_TNS.csv
+│   ├── MOMMA_*_TS.csv
+│   └── MOMMA_*_Totals.csv
+└── src/
+    └── asa24_analyzer.py
+```
 
 ## Data Analysis Features
 

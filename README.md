@@ -54,6 +54,7 @@ your-project-directory/
 
 1. **Nutrient Summary**
    - View and compare nutrient intake across visits
+   - Track neurodevelopment-related nutrients (Omega-3, Choline, etc.)
    - Interactive visualizations
    - Export data to Excel
 
@@ -61,6 +62,7 @@ your-project-directory/
    - Analyze food group consumption
    - Compare intake patterns
    - Track dietary diversity
+   - Comprehensive food group coverage
 
 3. **Supplements**
    - Monitor supplement intake
@@ -76,6 +78,13 @@ your-project-directory/
    - View individual food items
    - Track portion sizes
    - Export detailed records
+
+6. **Healthy Eating Index (HEI-2015)**
+   - Calculate HEI-2015 scores
+   - Track diet quality
+   - Visualize component scores
+   - Compare scores across visits
+   - Export HEI analysis
 
 ## File Structure
 

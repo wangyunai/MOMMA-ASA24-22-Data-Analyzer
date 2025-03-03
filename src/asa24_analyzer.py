@@ -44,7 +44,16 @@ class ASA24Analyzer:
                 'Vitamin B12 (mcg)': 'VB12',
                 'Folate (mcg)': 'FOLA',
                 'Sodium (mg)': 'SODI',
-                'Potassium (mg)': 'POTA'
+                'Potassium (mg)': 'POTA',
+                'Omega-3 Fatty Acids (g)': 'OMEGA3',
+                'Choline (mg)': 'CHOLINE',
+                'Iodine (mcg)': 'IODINE',
+                'Zinc (mg)': 'ZINC',
+                'DHA (g)': 'DHA',
+                'EPA (g)': 'EPA',
+                'ALA (g)': 'ALA',
+                'Selenium (mcg)': 'SELENIUM',
+                'Magnesium (mg)': 'MAGNESIUM'
             }
             
             summary = df[['UserName', 'RecallNo', 'IntakeStartDateTime'] + list(key_nutrients.values())].copy()
@@ -191,6 +200,15 @@ def show_glossary(page_type="general"):
             - **FOLA**: Folate
             - **SODI**: Sodium
             - **POTA**: Potassium
+            - **OMEGA3**: Omega-3 Fatty Acids
+            - **CHOLINE**: Choline
+            - **IODINE**: Iodine
+            - **ZINC**: Zinc
+            - **DHA**: Docosahexaenoic Acid (Omega-3)
+            - **EPA**: Eicosapentaenoic Acid (Omega-3)
+            - **ALA**: Alpha-Linolenic Acid (Omega-3)
+            - **SELENIUM**: Selenium
+            - **MAGNESIUM**: Magnesium
             
             ### Units
             - **g**: grams
@@ -258,6 +276,98 @@ def show_glossary(page_type="general"):
             - **IntakeStartDateTime**: Start date and time of the dietary recall period
             """)
 
+    def calculate_hei_2015(self, subjects=None):
+        """Calculate Healthy Eating Index-2015 scores
+        
+        The HEI-2015 includes 13 components:
+        1. Total Fruits (5 points)
+        2. Whole Fruits (5 points)
+        3. Total Vegetables (5 points)
+        4. Greens and Beans (5 points)
+        5. Whole Grains (10 points)
+        6. Dairy (10 points)
+        7. Total Protein Foods (5 points)
+        8. Seafood and Plant Proteins (5 points)
+        9. Fatty Acids ratio (10 points)
+        10. Refined Grains (10 points)
+        11. Sodium (10 points)
+        12. Added Sugars (10 points)
+        13. Saturated Fats (10 points)
+        
+        Total possible score: 100 points
+        """
+        if 'Totals' not in self.data:
+            return pd.DataFrame()
+            
+        df = self.data['Totals']
+        if subjects:
+            df = df[df['UserName'].isin(subjects)]
+        
+        # Create empty DataFrame for HEI scores
+        hei_scores = pd.DataFrame()
+        hei_scores['UserName'] = df['UserName']
+        hei_scores['Visit'] = 'Visit ' + df['RecallNo'].astype(str)
+        
+        # Calculate component scores based on density (per 1000 kcal)
+        energy_factor = 1000 / df['KCAL']
+        
+        # 1. Total Fruits (5 points) - ≥0.8 cup eq. per 1,000 kcal
+        total_fruits = df['F_TOTAL'] * energy_factor
+        hei_scores['Total Fruits'] = (total_fruits / 0.8 * 5).clip(0, 5)
+        
+        # 2. Whole Fruits (5 points) - ≥0.4 cup eq. per 1,000 kcal
+        whole_fruits = (df['F_TOTAL'] - df['F_JUICE']) * energy_factor
+        hei_scores['Whole Fruits'] = (whole_fruits / 0.4 * 5).clip(0, 5)
+        
+        # 3. Total Vegetables (5 points) - ≥1.1 cup eq. per 1,000 kcal
+        total_veg = df['V_TOTAL'] * energy_factor
+        hei_scores['Total Vegetables'] = (total_veg / 1.1 * 5).clip(0, 5)
+        
+        # 4. Greens and Beans (5 points) - ≥0.2 cup eq. per 1,000 kcal
+        greens_beans = (df['V_DRKGR'] + df['V_LEGUMES']) * energy_factor
+        hei_scores['Greens and Beans'] = (greens_beans / 0.2 * 5).clip(0, 5)
+        
+        # 5. Whole Grains (10 points) - ≥1.5 oz eq. per 1,000 kcal
+        whole_grains = df['G_WHOLE'] * energy_factor
+        hei_scores['Whole Grains'] = (whole_grains / 1.5 * 10).clip(0, 10)
+        
+        # 6. Dairy (10 points) - ≥1.3 cup eq. per 1,000 kcal
+        dairy = df['D_TOTAL'] * energy_factor
+        hei_scores['Dairy'] = (dairy / 1.3 * 10).clip(0, 10)
+        
+        # 7. Total Protein Foods (5 points) - ≥2.5 oz eq. per 1,000 kcal
+        total_protein = df['PF_TOTAL'] * energy_factor
+        hei_scores['Total Protein Foods'] = (total_protein / 2.5 * 5).clip(0, 5)
+        
+        # 8. Seafood and Plant Proteins (5 points) - ≥0.8 oz eq. per 1,000 kcal
+        seafood_plant = (df['PF_SEAFD_HI'] + df['PF_NUTSDS']) * energy_factor
+        hei_scores['Seafood and Plant Proteins'] = (seafood_plant / 0.8 * 5).clip(0, 5)
+        
+        # 9. Fatty Acids ((MUFA + PUFA) / SFA) (10 points) - ≥2.5
+        fatty_acids_ratio = (df['MUFA'] + df['PUFA']) / df['SFA']
+        hei_scores['Fatty Acids'] = ((fatty_acids_ratio - 1.2) / (2.5 - 1.2) * 10).clip(0, 10)
+        
+        # 10. Refined Grains (10 points) - ≤1.8 oz eq. per 1,000 kcal
+        refined_grains = df['G_REFINED'] * energy_factor
+        hei_scores['Refined Grains'] = ((4.3 - refined_grains) / (4.3 - 1.8) * 10).clip(0, 10)
+        
+        # 11. Sodium (10 points) - ≤1.1 gram per 1,000 kcal
+        sodium = df['SODI'] * energy_factor / 1000  # Convert to grams
+        hei_scores['Sodium'] = ((2.0 - sodium) / (2.0 - 1.1) * 10).clip(0, 10)
+        
+        # 12. Added Sugars (10 points) - ≤6.5% of energy
+        added_sugars_perc = df['ADD_SUGARS'] * 4 * 100 / df['KCAL']  # Convert to % of energy
+        hei_scores['Added Sugars'] = ((26 - added_sugars_perc) / (26 - 6.5) * 10).clip(0, 10)
+        
+        # 13. Saturated Fats (10 points) - ≤8% of energy
+        sat_fat_perc = df['SFA'] * 9 * 100 / df['KCAL']  # Convert to % of energy
+        hei_scores['Saturated Fats'] = ((16 - sat_fat_perc) / (16 - 8) * 10).clip(0, 10)
+        
+        # Calculate total HEI score
+        hei_scores['Total HEI Score'] = hei_scores.drop(['UserName', 'Visit'], axis=1).sum(axis=1)
+        
+        return hei_scores.set_index(['UserName', 'Visit'])
+
 def convert_df_to_excel(df):
     """Convert dataframe to Excel bytes for download"""
     output = BytesIO()
@@ -314,7 +424,7 @@ def main():
     # Navigation
     st.sidebar.title("Navigation")
     page = st.sidebar.radio("Select a page", 
-        ["Nutrient Summary", "Food Groups", "Supplements", "Meals", "Food Items"])
+        ["Nutrient Summary", "Food Groups", "Supplements", "Meals", "Food Items", "Healthy Eating Index"])
 
     if page == "Nutrient Summary":
         st.header("Nutrient Summary")
@@ -427,6 +537,82 @@ def main():
             file_name="food_items.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
+    elif page == "Healthy Eating Index":
+        st.header("Healthy Eating Index (HEI-2015)")
+        st.markdown("""
+        The Healthy Eating Index (HEI) is a measure of diet quality used to assess how well a set of foods aligns with key recommendations of the Dietary Guidelines for Americans.
+        
+        The HEI-2015 includes 13 components that reflect the key recommendations:
+        - Adequacy components (higher scores indicate higher consumption):
+          - Total Fruits (5 points)
+          - Whole Fruits (5 points)
+          - Total Vegetables (5 points)
+          - Greens and Beans (5 points)
+          - Whole Grains (10 points)
+          - Dairy (10 points)
+          - Total Protein Foods (5 points)
+          - Seafood and Plant Proteins (5 points)
+          - Fatty Acids ratio (10 points)
+        
+        - Moderation components (higher scores indicate lower consumption):
+          - Refined Grains (10 points)
+          - Sodium (10 points)
+          - Added Sugars (10 points)
+          - Saturated Fats (10 points)
+        
+        Total possible score: 100 points
+        """)
+        
+        df = analyzer.calculate_hei_2015(selected_subjects)
+        
+        # Display HEI scores
+        st.subheader("HEI Component Scores")
+        st.dataframe(df)
+        
+        excel_data = convert_df_to_excel(df)
+        st.download_button(
+            label="Download HEI Scores as Excel",
+            data=excel_data,
+            file_name="hei_scores.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        
+        # Visualization options
+        st.subheader("Visualize HEI Scores")
+        
+        # Total HEI Score visualization
+        fig_total = px.line(df.reset_index(), x='Visit', y='Total HEI Score',
+                          color='UserName', markers=True,
+                          title='Total HEI Score over Visits')
+        fig_total.update_xaxes(tickmode='array',
+                             ticktext=sorted(df.reset_index()['Visit'].unique()),
+                             tickvals=sorted(df.reset_index()['Visit'].unique()))
+        st.plotly_chart(fig_total)
+        
+        # Individual components visualization
+        components = [col for col in df.columns if col != 'Total HEI Score']
+        selected_component = st.selectbox("Select HEI component to visualize", components)
+        
+        fig_comp = px.line(df.reset_index(), x='Visit', y=selected_component,
+                          color='UserName', markers=True,
+                          title=f'{selected_component} Score over Visits')
+        fig_comp.update_xaxes(tickmode='array',
+                            ticktext=sorted(df.reset_index()['Visit'].unique()),
+                            tickvals=sorted(df.reset_index()['Visit'].unique()))
+        st.plotly_chart(fig_comp)
+        
+        # Radar chart for latest visit
+        st.subheader("HEI Component Scores Radar Chart")
+        latest_visits = df.reset_index().groupby('UserName')['Visit'].max()
+        latest_data = df.reset_index().merge(latest_visits, on=['UserName', 'Visit'])
+        
+        fig_radar = px.line_polar(latest_data, r=components,
+                                theta=components,
+                                line_close=True,
+                                color='UserName',
+                                title='HEI Component Scores (Latest Visit)')
+        st.plotly_chart(fig_radar)
 
 if __name__ == "__main__":
     main()

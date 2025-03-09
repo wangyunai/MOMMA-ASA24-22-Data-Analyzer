@@ -32,6 +32,12 @@ class TestASA24Analyzer(unittest.TestCase):
         self.assertEqual(test_user1_visit1['KCAL'], 2000)  # Use original column name
         self.assertEqual(test_user1_visit1['PROT'], 75)    # Use original column name
         self.assertEqual(test_user1_visit1['TFAT'], 65)    # Use original column name
+        
+        # Test Omega-3 fatty acids and other nutrients
+        self.assertEqual(test_user1_visit1['OMEGA3'], 1.6)  # Omega-3 Fatty Acids
+        self.assertEqual(test_user1_visit1['DHA'], 0.5)     # DHA
+        self.assertEqual(test_user1_visit1['EPA'], 0.5)     # EPA
+        self.assertEqual(test_user1_visit1['ALA'], 1.6)     # ALA
 
         # Test filtering by subjects
         filtered_summary = self.analyzer.get_nutrient_summary(subjects=['test_user1'])

@@ -243,8 +243,22 @@ class ASA24Analyzer:
         hei_scores['Seafood and Plant Proteins'] = (seafood_plant / 0.8 * 5).clip(0, 5)
         
         # 9. Fatty Acids ((MUFA + PUFA) / SFA) (10 points) - ≥2.5
-        fatty_acids_ratio = (df['MUFA'] + df['PUFA']) / df['SFA']
-        hei_scores['Fatty Acids'] = ((fatty_acids_ratio - 1.2) / (2.5 - 1.2) * 10).clip(0, 10)
+        # Check if the necessary columns exist
+        if 'MUFA' in df.columns and 'PUFA' in df.columns and 'SFA' in df.columns:
+            fatty_acids_ratio = (df['MUFA'] + df['PUFA']) / df['SFA']
+            hei_scores['Fatty Acids'] = ((fatty_acids_ratio - 1.2) / (2.5 - 1.2) * 10).clip(0, 10)
+        else:
+            # Use M161 (Oleic acid) + M181 (Linoleic acid) + P183 (Alpha-linolenic acid) for MUFA+PUFA
+            # and S040 (Butyric acid) + S060 (Caproic acid) + ... + S180 (Stearic acid) for SFA
+            # if available
+            if all(col in df.columns for col in ['M161', 'M181', 'P183', 'S040', 'S060', 'S080', 'S100', 'S120', 'S140', 'S160', 'S180']):
+                mufa_pufa = df['M161'] + df['M181'] + df['P183']
+                sfa = df['S040'] + df['S060'] + df['S080'] + df['S100'] + df['S120'] + df['S140'] + df['S160'] + df['S180']
+                fatty_acids_ratio = mufa_pufa / sfa
+                hei_scores['Fatty Acids'] = ((fatty_acids_ratio - 1.2) / (2.5 - 1.2) * 10).clip(0, 10)
+            else:
+                # If we don't have the necessary columns, assign a default score
+                hei_scores['Fatty Acids'] = 5  # Default middle score
         
         # 10. Refined Grains (10 points) - ≤1.8 oz eq. per 1,000 kcal
         refined_grains = df['G_REFINED'] * energy_factor
@@ -259,7 +273,19 @@ class ASA24Analyzer:
         hei_scores['Added Sugars'] = ((26 - added_sugars_perc) / (26 - 6.5) * 10).clip(0, 10)
         
         # 13. Saturated Fats (10 points) - ≤8% of energy
-        sat_fat_perc = df['SFA'] * 9 * 100 / df['KCAL']  # Convert to % of energy
+        if 'SFA' in df.columns:
+            sat_fat_perc = df['SFA'] * 9 * 100 / df['KCAL']  # Convert to % of energy
+        elif 'SFAT' in df.columns:
+            sat_fat_perc = df['SFAT'] * 9 * 100 / df['KCAL']  # Convert to % of energy
+        else:
+            # Use individual saturated fatty acids if available
+            if all(col in df.columns for col in ['S040', 'S060', 'S080', 'S100', 'S120', 'S140', 'S160', 'S180']):
+                sfa = df['S040'] + df['S060'] + df['S080'] + df['S100'] + df['S120'] + df['S140'] + df['S160'] + df['S180']
+                sat_fat_perc = sfa * 9 * 100 / df['KCAL']
+            else:
+                # Default to a middle value if we can't calculate
+                sat_fat_perc = 12  # Middle value between 8 and 16
+        
         hei_scores['Saturated Fats'] = ((16 - sat_fat_perc) / (16 - 8) * 10).clip(0, 10)
         
         # Calculate total HEI score

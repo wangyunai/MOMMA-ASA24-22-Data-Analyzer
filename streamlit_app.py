@@ -139,6 +139,32 @@ class ASA24Analyzer:
             meal_summary['Visit'] = 'Visit ' + meal_summary['RecallNo'].astype(str)
             return meal_summary.set_index(['UserName', 'Visit', 'Meal'])
         return pd.DataFrame()
+        
+    def get_detailed_food_items(self, subjects=None):
+        """Get detailed food items list"""
+        if 'Items' in self.data:
+            df = self.data['Items']
+            if subjects:
+                df = df[df['UserName'].isin(subjects)]
+            
+            # Create meal name mapping
+            meal_names = {
+                '1': 'Breakfast',
+                '2': 'Morning Snack',
+                '3': 'Lunch',
+                '4': 'Afternoon Snack',
+                '5': 'Dinner',
+                '6': 'Evening Snack',
+                '7': 'Late Evening Snack',
+                '8': 'Other Time'
+            }
+            
+            food_items = df[['UserName', 'RecallNo', 'Occ_Name', 'Food_Description',
+                           'FoodAmt', 'KCAL', 'PROT', 'TFAT', 'CARB']].copy()
+            food_items['Meal'] = food_items['Occ_Name'].astype(str).map(meal_names)
+            food_items['Visit'] = 'Visit ' + food_items['RecallNo'].astype(str)
+            return food_items
+        return pd.DataFrame()
 
 def show_glossary(page_type="general"):
     """Show relevant abbreviations and terms based on the page type"""

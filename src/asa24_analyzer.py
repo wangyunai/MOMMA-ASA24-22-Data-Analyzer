@@ -178,104 +178,7 @@ class ASA24Analyzer:
             food_items['Visit'] = 'Visit ' + food_items['RecallNo'].astype(str)
             return food_items
         return pd.DataFrame()
-
-def show_glossary(page_type="general"):
-    """Show relevant abbreviations and terms based on the page type"""
-    with st.expander("📚 Click here to see abbreviations and terms"):
-        if page_type == "nutrients":
-            st.markdown("""
-            ### Nutrient Abbreviations
-            - **KCAL**: Kilocalories (Energy)
-            - **PROT**: Protein
-            - **TFAT**: Total Fat
-            - **CARB**: Carbohydrates
-            - **FIBE**: Dietary Fiber
-            - **SUGR**: Total Sugars
-            - **CALC**: Calcium
-            - **IRON**: Iron
-            - **VC**: Vitamin C
-            - **VITD**: Vitamin D
-            - **VARA**: Vitamin A
-            - **VB12**: Vitamin B12
-            - **FOLA**: Folate
-            - **SODI**: Sodium
-            - **POTA**: Potassium
-            - **OMEGA3**: Omega-3 Fatty Acids
-            - **CHOLINE**: Choline
-            - **IODINE**: Iodine
-            - **ZINC**: Zinc
-            - **DHA**: Docosahexaenoic Acid (Omega-3)
-            - **EPA**: Eicosapentaenoic Acid (Omega-3)
-            - **ALA**: Alpha-Linolenic Acid (Omega-3)
-            - **SELENIUM**: Selenium
-            - **MAGNESIUM**: Magnesium
-            
-            ### Units
-            - **g**: grams
-            - **mg**: milligrams
-            - **mcg**: micrograms
-            - **kcal**: kilocalories
-            """)
-        elif page_type == "food_groups":
-            st.markdown("""
-            ### Food Group Abbreviations
-            - **F_**: Fruit related measures
-                - **F_TOTAL**: Total Fruits
-                - **F_CITMLB**: Citrus, Melons, and Berries
-                - **F_OTHER**: Other Fruits
-            - **V_**: Vegetable related measures
-                - **V_TOTAL**: Total Vegetables
-                - **V_DRKGR**: Dark Green Vegetables
-                - **V_REDOR**: Red and Orange Vegetables
-            - **G_**: Grain related measures
-                - **G_TOTAL**: Total Grains
-                - **G_WHOLE**: Whole Grains
-                - **G_REFINED**: Refined Grains
-            - **PF_**: Protein Foods
-                - **PF_TOTAL**: Total Protein Foods
-                - **PF_MEAT**: Meat
-                - **PF_POULT**: Poultry
-                - **PF_SEAFD**: Seafood
-                - **PF_EGGS**: Eggs
-                - **PF_NUTSDS**: Nuts and Seeds
-            - **D_**: Dairy related measures
-                - **D_TOTAL**: Total Dairy
-                - **D_MILK**: Milk
-                - **D_CHEESE**: Cheese
-            
-            ### Units
-            - **cup eq**: Cup Equivalent
-            - **oz eq**: Ounce Equivalent
-            - **tsp eq**: Teaspoon Equivalent
-            - **g**: grams
-            """)
-        elif page_type == "meals":
-            st.markdown("""
-            ### Meal Names
-            - **Breakfast**: First meal of the day
-            - **Morning Snack**: Mid-morning snack
-            - **Lunch**: Midday meal
-            - **Afternoon Snack**: Mid-afternoon snack
-            - **Dinner**: Evening meal
-            - **Evening Snack**: After dinner snack
-            - **Late Evening Snack**: Late night snack
-            - **Other Time**: Meals at other times
-            
-            ### Nutrient Measures
-            - **KCAL**: Kilocalories (Energy)
-            - **PROT**: Protein (g)
-            - **TFAT**: Total Fat (g)
-            - **CARB**: Carbohydrates (g)
-            """)
-        else:
-            st.markdown("""
-            ### General Terms
-            - **ASA24**: Automated Self-Administered 24-Hour Dietary Assessment Tool
-            - **Visit**: The dietary recall visit number
-            - **UserName**: Unique identifier for each participant
-            - **IntakeStartDateTime**: Start date and time of the dietary recall period
-            """)
-
+        
     def calculate_hei_2015(self, subjects=None):
         """Calculate Healthy Eating Index-2015 scores
         
@@ -316,7 +219,11 @@ def show_glossary(page_type="general"):
         hei_scores['Total Fruits'] = (total_fruits / 0.8 * 5).clip(0, 5)
         
         # 2. Whole Fruits (5 points) - ≥0.4 cup eq. per 1,000 kcal
-        whole_fruits = (df['F_TOTAL'] - df['F_JUICE']) * energy_factor
+        if 'F_JUICE' in df.columns:
+            whole_fruits = (df['F_TOTAL'] - df['F_JUICE']) * energy_factor
+        else:
+            # If F_JUICE is not available, assume all fruits are whole fruits
+            whole_fruits = df['F_TOTAL'] * energy_factor
         hei_scores['Whole Fruits'] = (whole_fruits / 0.4 * 5).clip(0, 5)
         
         # 3. Total Vegetables (5 points) - ≥1.1 cup eq. per 1,000 kcal
@@ -324,7 +231,11 @@ def show_glossary(page_type="general"):
         hei_scores['Total Vegetables'] = (total_veg / 1.1 * 5).clip(0, 5)
         
         # 4. Greens and Beans (5 points) - ≥0.2 cup eq. per 1,000 kcal
-        greens_beans = (df['V_DRKGR'] + df['V_LEGUMES']) * energy_factor
+        if 'V_LEGUMES' in df.columns:
+            greens_beans = (df['V_DRKGR'] + df['V_LEGUMES']) * energy_factor
+        else:
+            # If V_LEGUMES is not available, use just dark green vegetables
+            greens_beans = df['V_DRKGR'] * energy_factor
         hei_scores['Greens and Beans'] = (greens_beans / 0.2 * 5).clip(0, 5)
         
         # 5. Whole Grains (10 points) - ≥1.5 oz eq. per 1,000 kcal
@@ -344,8 +255,22 @@ def show_glossary(page_type="general"):
         hei_scores['Seafood and Plant Proteins'] = (seafood_plant / 0.8 * 5).clip(0, 5)
         
         # 9. Fatty Acids ((MUFA + PUFA) / SFA) (10 points) - ≥2.5
-        fatty_acids_ratio = (df['MUFA'] + df['PUFA']) / df['SFA']
-        hei_scores['Fatty Acids'] = ((fatty_acids_ratio - 1.2) / (2.5 - 1.2) * 10).clip(0, 10)
+        # Check if the necessary columns exist
+        if 'MUFA' in df.columns and 'PUFA' in df.columns and 'SFA' in df.columns:
+            fatty_acids_ratio = (df['MUFA'] + df['PUFA']) / df['SFA']
+            hei_scores['Fatty Acids'] = ((fatty_acids_ratio - 1.2) / (2.5 - 1.2) * 10).clip(0, 10)
+        else:
+            # Use M161 (Oleic acid) + M181 (Linoleic acid) + P183 (Alpha-linolenic acid) for MUFA+PUFA
+            # and S040 (Butyric acid) + S060 (Caproic acid) + ... + S180 (Stearic acid) for SFA
+            # if available
+            if all(col in df.columns for col in ['M161', 'M181', 'P183', 'S040', 'S060', 'S080', 'S100', 'S120', 'S140', 'S160', 'S180']):
+                mufa_pufa = df['M161'] + df['M181'] + df['P183']
+                sfa = df['S040'] + df['S060'] + df['S080'] + df['S100'] + df['S120'] + df['S140'] + df['S160'] + df['S180']
+                fatty_acids_ratio = mufa_pufa / sfa
+                hei_scores['Fatty Acids'] = ((fatty_acids_ratio - 1.2) / (2.5 - 1.2) * 10).clip(0, 10)
+            else:
+                # If we don't have the necessary columns, assign a default score
+                hei_scores['Fatty Acids'] = 5  # Default middle score
         
         # 10. Refined Grains (10 points) - ≤1.8 oz eq. per 1,000 kcal
         refined_grains = df['G_REFINED'] * energy_factor
@@ -360,259 +285,24 @@ def show_glossary(page_type="general"):
         hei_scores['Added Sugars'] = ((26 - added_sugars_perc) / (26 - 6.5) * 10).clip(0, 10)
         
         # 13. Saturated Fats (10 points) - ≤8% of energy
-        sat_fat_perc = df['SFA'] * 9 * 100 / df['KCAL']  # Convert to % of energy
-        hei_scores['Saturated Fats'] = ((16 - sat_fat_perc) / (16 - 8) * 10).clip(0, 10)
+        if 'SFA' in df.columns:
+            sat_fat_perc = df['SFA'] * 9 * 100 / df['KCAL']  # Convert to % of energy
+            hei_scores['Saturated Fats'] = ((16 - sat_fat_perc) / (16 - 8) * 10).clip(0, 10)
+        elif 'SFAT' in df.columns:
+            sat_fat_perc = df['SFAT'] * 9 * 100 / df['KCAL']  # Convert to % of energy
+            hei_scores['Saturated Fats'] = ((16 - sat_fat_perc) / (16 - 8) * 10).clip(0, 10)
+        else:
+            # Use individual saturated fatty acids if available
+            if all(col in df.columns for col in ['S040', 'S060', 'S080', 'S100', 'S120', 'S140', 'S160', 'S180']):
+                sfa = df['S040'] + df['S060'] + df['S080'] + df['S100'] + df['S120'] + df['S140'] + df['S160'] + df['S180']
+                sat_fat_perc = sfa * 9 * 100 / df['KCAL']
+                hei_scores['Saturated Fats'] = ((16 - sat_fat_perc) / (16 - 8) * 10).clip(0, 10)
+            else:
+                # Default to a middle value if we can't calculate
+                hei_scores['Saturated Fats'] = 5  # Default middle score
         
         # Calculate total HEI score
         hei_scores['Total HEI Score'] = hei_scores.drop(['UserName', 'Visit'], axis=1).sum(axis=1)
         
         return hei_scores.set_index(['UserName', 'Visit'])
 
-def convert_df_to_excel(df):
-    """Convert dataframe to Excel bytes for download"""
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=True, sheet_name='Sheet1')
-    return output.getvalue()
-
-def main():
-    st.set_page_config(page_title="ASA24 Multi-Subject Analyzer", layout="wide")
-    st.title("ASA24 Multi-Subject Analyzer")
-    
-    # Allow users to specify data directory
-    data_dir = st.sidebar.text_input(
-        "Data Directory",
-        value="data",
-        help="Enter the path to your ASA24 data directory (absolute path or relative to current directory)"
-    )
-    
-    # Convert relative path to absolute path
-    if not os.path.isabs(data_dir):
-        data_dir = os.path.abspath(data_dir)
-    
-    # Check if directory exists and contains ASA24 files
-    if not os.path.exists(data_dir):
-        st.error(f"Error: Directory not found: {data_dir}")
-        st.info("Please enter the correct path to your ASA24 data directory")
-        return
-    
-    if not any(file.endswith('.csv') for file in os.listdir(data_dir)):
-        st.error(f"Error: No CSV files found in {data_dir}")
-        st.info("Please make sure your ASA24 data files (.csv) are in the specified directory")
-        return
-    
-    if data_dir is None:
-        st.error("Error: Could not find ASA24 data directory")
-        return
-
-    # Initialize analyzer
-    analyzer = ASA24Analyzer(data_dir)
-
-    # Subject selection in sidebar
-    st.sidebar.title("Subject Selection")
-    available_subjects = sorted(list(analyzer.subjects))
-    selected_subjects = st.sidebar.multiselect(
-        "Select subjects to analyze",
-        available_subjects,
-        default=available_subjects
-    )
-
-    if not selected_subjects:
-        st.warning("Please select at least one subject to analyze.")
-        return
-
-    # Navigation
-    st.sidebar.title("Navigation")
-    page = st.sidebar.radio("Select a page", 
-        ["Nutrient Summary", "Food Groups", "Supplements", "Meals", "Food Items", "Healthy Eating Index"])
-
-    if page == "Nutrient Summary":
-        st.header("Nutrient Summary")
-        show_glossary("nutrients")
-        df = analyzer.get_nutrient_summary(selected_subjects)
-        st.dataframe(df)
-        
-        excel_data = convert_df_to_excel(df)
-        st.download_button(
-            label="Download Nutrient Summary as Excel",
-            data=excel_data,
-            file_name="nutrient_summary.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-        
-        # Visualization options
-        st.subheader("Visualize Nutrients")
-        nutrients = [col for col in df.columns if col not in ['IntakeStartDateTime']]
-        selected_nutrient = st.selectbox("Select nutrient to visualize", nutrients)
-        
-        # Create line plot with Visit on x-axis
-        fig = px.line(df.reset_index(), x='Visit', y=selected_nutrient, 
-                     color='UserName', markers=True,
-                     title=f'{selected_nutrient} over Visits')
-        # Customize x-axis to show all visits
-        fig.update_xaxes(tickmode='array', 
-                        ticktext=sorted(df.reset_index()['Visit'].unique()),
-                        tickvals=sorted(df.reset_index()['Visit'].unique()))
-        st.plotly_chart(fig)
-
-    elif page == "Food Groups":
-        st.header("Food Groups Summary")
-        show_glossary("food_groups")
-        df = analyzer.get_food_groups_summary(selected_subjects)
-        st.dataframe(df)
-        
-        excel_data = convert_df_to_excel(df)
-        st.download_button(
-            label="Download Food Groups Summary as Excel",
-            data=excel_data,
-            file_name="food_groups_summary.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-        
-        # Visualization options
-        st.subheader("Visualize Food Groups")
-        food_groups = [col for col in df.columns if col not in ['IntakeStartDateTime']]
-        selected_group = st.selectbox("Select food group to visualize", food_groups)
-        
-        # Create line plot with Visit on x-axis
-        fig = px.line(df.reset_index(), x='Visit', y=selected_group,
-                     color='UserName', markers=True,
-                     title=f'{selected_group} over Visits')
-        # Customize x-axis to show all visits
-        fig.update_xaxes(tickmode='array',
-                        ticktext=sorted(df.reset_index()['Visit'].unique()),
-                        tickvals=sorted(df.reset_index()['Visit'].unique()))
-        st.plotly_chart(fig)
-
-    elif page == "Supplements":
-        st.header("Supplement Summary")
-        show_glossary("general")
-        df = analyzer.get_supplement_summary(selected_subjects)
-        st.dataframe(df)
-        
-        excel_data = convert_df_to_excel(df)
-        st.download_button(
-            label="Download Supplement Summary as Excel",
-            data=excel_data,
-            file_name="supplement_summary.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-
-    elif page == "Meals":
-        st.header("Meal Summary")
-        show_glossary("meals")
-        df = analyzer.get_meal_summary(selected_subjects)
-        st.dataframe(df)
-        
-        excel_data = convert_df_to_excel(df)
-        st.download_button(
-            label="Download Meal Summary as Excel",
-            data=excel_data,
-            file_name="meal_summary.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-        
-        # Visualization options
-        st.subheader("Visualize Meals")
-        metrics = ['Calories', 'Protein (g)', 'Fat (g)', 'Carbs (g)']
-        selected_metric = st.selectbox("Select metric to visualize", metrics)
-        
-        meal_data = df.reset_index()
-        fig = px.bar(meal_data, x='Meal', y=selected_metric,
-                    color='UserName', barmode='group',
-                    facet_col='Visit',
-                    title=f'{selected_metric} by Meal and Visit')
-        st.plotly_chart(fig)
-
-    elif page == "Food Items":
-        st.header("Detailed Food Items")
-        show_glossary("general")
-        df = analyzer.get_detailed_food_items(selected_subjects)
-        st.dataframe(df)
-        
-        excel_data = convert_df_to_excel(df)
-        st.download_button(
-            label="Download Food Items as Excel",
-            data=excel_data,
-            file_name="food_items.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-
-    elif page == "Healthy Eating Index":
-        st.header("Healthy Eating Index (HEI-2015)")
-        st.markdown("""
-        The Healthy Eating Index (HEI) is a measure of diet quality used to assess how well a set of foods aligns with key recommendations of the Dietary Guidelines for Americans.
-        
-        The HEI-2015 includes 13 components that reflect the key recommendations:
-        - Adequacy components (higher scores indicate higher consumption):
-          - Total Fruits (5 points)
-          - Whole Fruits (5 points)
-          - Total Vegetables (5 points)
-          - Greens and Beans (5 points)
-          - Whole Grains (10 points)
-          - Dairy (10 points)
-          - Total Protein Foods (5 points)
-          - Seafood and Plant Proteins (5 points)
-          - Fatty Acids ratio (10 points)
-        
-        - Moderation components (higher scores indicate lower consumption):
-          - Refined Grains (10 points)
-          - Sodium (10 points)
-          - Added Sugars (10 points)
-          - Saturated Fats (10 points)
-        
-        Total possible score: 100 points
-        """)
-        
-        df = analyzer.calculate_hei_2015(selected_subjects)
-        
-        # Display HEI scores
-        st.subheader("HEI Component Scores")
-        st.dataframe(df)
-        
-        excel_data = convert_df_to_excel(df)
-        st.download_button(
-            label="Download HEI Scores as Excel",
-            data=excel_data,
-            file_name="hei_scores.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-        
-        # Visualization options
-        st.subheader("Visualize HEI Scores")
-        
-        # Total HEI Score visualization
-        fig_total = px.line(df.reset_index(), x='Visit', y='Total HEI Score',
-                          color='UserName', markers=True,
-                          title='Total HEI Score over Visits')
-        fig_total.update_xaxes(tickmode='array',
-                             ticktext=sorted(df.reset_index()['Visit'].unique()),
-                             tickvals=sorted(df.reset_index()['Visit'].unique()))
-        st.plotly_chart(fig_total)
-        
-        # Individual components visualization
-        components = [col for col in df.columns if col != 'Total HEI Score']
-        selected_component = st.selectbox("Select HEI component to visualize", components)
-        
-        fig_comp = px.line(df.reset_index(), x='Visit', y=selected_component,
-                          color='UserName', markers=True,
-                          title=f'{selected_component} Score over Visits')
-        fig_comp.update_xaxes(tickmode='array',
-                            ticktext=sorted(df.reset_index()['Visit'].unique()),
-                            tickvals=sorted(df.reset_index()['Visit'].unique()))
-        st.plotly_chart(fig_comp)
-        
-        # Radar chart for latest visit
-        st.subheader("HEI Component Scores Radar Chart")
-        latest_visits = df.reset_index().groupby('UserName')['Visit'].max()
-        latest_data = df.reset_index().merge(latest_visits, on=['UserName', 'Visit'])
-        
-        fig_radar = px.line_polar(latest_data, r=components,
-                                theta=components,
-                                line_close=True,
-                                color='UserName',
-                                title='HEI Component Scores (Latest Visit)')
-        st.plotly_chart(fig_radar)
-
-if __name__ == "__main__":
-    main()

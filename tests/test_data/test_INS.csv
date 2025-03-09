@@ -1,0 +1,7 @@
+UserName,RecallNo,IntakeStartDateTime,Suppl_Description,SupplAmount,SupplUnit
+test_user1,1,2023-01-01 08:00:00,Multivitamin,1,tablet
+test_user1,1,2023-01-01 08:00:00,Vitamin D,1000,IU
+test_user1,2,2023-01-02 08:00:00,Multivitamin,1,tablet
+test_user1,2,2023-01-02 08:00:00,Fish Oil,1,capsule
+test_user2,1,2023-01-01 09:00:00,Calcium,500,mg
+test_user2,1,2023-01-01 09:00:00,Vitamin C,500,mg

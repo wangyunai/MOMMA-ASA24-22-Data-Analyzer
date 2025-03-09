@@ -44,7 +44,16 @@ class ASA24Analyzer:
                 'Vitamin B12 (mcg)': 'VB12',
                 'Folate (mcg)': 'FOLA',
                 'Sodium (mg)': 'SODI',
-                'Potassium (mg)': 'POTA'
+                'Potassium (mg)': 'POTA',
+                'Omega-3 Fatty Acids (g)': 'OMEGA3',
+                'Choline (mg)': 'CHOLINE',
+                'Iodine (mcg)': 'IODINE',
+                'Zinc (mg)': 'ZINC',
+                'DHA (g)': 'DHA',
+                'EPA (g)': 'EPA',
+                'ALA (g)': 'ALA',
+                'Selenium (mcg)': 'SELENIUM',
+                'Magnesium (mg)': 'MAGNESIUM'
             }
             
             summary = df[['UserName', 'RecallNo', 'IntakeStartDateTime'] + list(key_nutrients.values())].copy()
@@ -279,6 +288,15 @@ def show_glossary(page_type="general"):
             - **FOLA**: Folate
             - **SODI**: Sodium
             - **POTA**: Potassium
+            - **OMEGA3**: Omega-3 Fatty Acids
+            - **CHOLINE**: Choline
+            - **IODINE**: Iodine
+            - **ZINC**: Zinc
+            - **DHA**: Docosahexaenoic Acid (Omega-3)
+            - **EPA**: Eicosapentaenoic Acid (Omega-3)
+            - **ALA**: Alpha-Linolenic Acid (Omega-3)
+            - **SELENIUM**: Selenium
+            - **MAGNESIUM**: Magnesium
             
             ### Units
             - **g**: grams
